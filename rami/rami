@@ -724,6 +724,7 @@ ObsoleteRami() {
         yes) ;;
         *) exit 1 ;;
     esac
+    eos-deprecation-message "$progname" "2026-09-01" || exit 1
 }
 
 Main() {
