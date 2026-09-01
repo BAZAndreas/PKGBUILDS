@@ -81,6 +81,3 @@ Server = https://repo.c48.uk/endeavouros/repo/$repo/$arch
 ## United States
 Server = https://mirrors.gigenet.com/endeavouros/repo/$repo/$arch
 
-## Vietnam
-Server = https://mirror.meowsmp.net/endeavouros/repo/$repo/$arch
-
