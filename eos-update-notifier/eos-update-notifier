@@ -628,6 +628,7 @@ yad_infomsg() {
 Main()
 {
     local progname=eos-update-notifier
+    eos-deprecation-message "$progname" "2026-09-01" || exit 1
 
     if [ -x /usr/bin/calamares ] && [ "$LOGNAME" = "liveuser" ] ; then
         echo "==> Stopping $progname while installing."
