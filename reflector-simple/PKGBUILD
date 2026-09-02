@@ -1,9 +1,11 @@
 # Maintainer: EndeavourOS-Team <info@endeavouros.com>
 
+# shellcheck disable=2034,2154
+
 pkgname=reflector-simple
 pkgdesc="Simple GUI wrapper for 'reflector'."
 pkgver=2026.8
-pkgrel=1
+pkgrel=2
 arch=('any')
 license=('GPL')
 depends=(
@@ -18,8 +20,8 @@ optdepends=(
     'bind: optional alternative for finding country code'
 )
 backup=(
-  etc/$pkgname.conf
-  etc/${pkgname}-tool.conf
+  "etc/$pkgname.conf"
+  "etc/${pkgname}-tool.conf"
 )
 
 #url=https://github.com/endeavouros-team/PKGBUILDS
@@ -27,12 +29,12 @@ url=https://github.com/endeavouros-team/PKGBUILDS/tree/master/$pkgname
 _url="https://raw.githubusercontent.com/endeavouros-team/PKGBUILDS/master/$pkgname"
 
 source=(
-  $_url/$pkgname
-  $_url/$pkgname.desktop
-  $_url/$pkgname.conf
-  $_url/${pkgname}-tool.conf
-  $_url/mirrorlist-rank-info
-  $_url/eos-latest-arch-mirrorlist
+  "$_url/$pkgname"
+  "$_url/$pkgname.desktop"
+  "$_url/$pkgname.conf"
+  "$_url/${pkgname}-tool.conf"
+  "$_url/mirrorlist-rank-info"
+  "$_url/eos-latest-arch-mirrorlist"
 )
 sha512sums=('1236fca90898544f70586a151ed3e6f6ac333f61bd93b0313bd40d6ad52ab8ffcfe14f0c11aa8d9452bc4cc128ad62480df8665aa20abb024fe0fc39048ee7fc'
             'b174cf5899123b645952312872c369c851a417a6804bbde8fb33d94efe8a00523fc5e9a392be22582345f37e85f6d098086f9ae8fa7978f573ae94c4d1710bdd'
@@ -42,19 +44,19 @@ sha512sums=('1236fca90898544f70586a151ed3e6f6ac333f61bd93b0313bd40d6ad52ab8ffcfe
             '1b48d63ef98e51cd56ad3ffda5f27228eb0de5e5ddfdd15b58980b588748cbdd11bf6419e59188defccbdef1c33ab1aaaea8d4af327df470e5c641686912c413')
 
 package() {
-  cd $srcdir
+  # cd "$srcdir"
 
   # sed -i $pkgname -e "s|local VERSION_INFO=.*$|local VERSION_INFO=${pkgver}-$pkgrel|"
 
-  install -d $pkgdir/usr/bin
-  install -d $pkgdir/etc
-  install -d $pkgdir/usr/share/applications
+  install -d "$pkgdir/usr/bin"
+  install -d "$pkgdir/etc"
+  install -d "$pkgdir/usr/share/applications"
 
-  install -Dm755 $pkgname                     $pkgdir/usr/bin/$pkgname
-  install -Dm755 eos-latest-arch-mirrorlist   $pkgdir/usr/bin/eos-latest-arch-mirrorlist
-  install -Dm755 mirrorlist-rank-info         $pkgdir/usr/bin/mirrorlist-rank-info
+  install -Dm755 $pkgname                     "$pkgdir/usr/bin/$pkgname"
+  install -Dm755 eos-latest-arch-mirrorlist   "$pkgdir/usr/bin/eos-latest-arch-mirrorlist"
+  install -Dm755 mirrorlist-rank-info         "$pkgdir/usr/bin/mirrorlist-rank-info"
   
-  install -Dm644 $pkgname.conf           $pkgdir/etc/$pkgname.conf
-  install -Dm644 ${pkgname}-tool.conf    $pkgdir/etc/${pkgname}-tool.conf
-  install -Dm644 $pkgname.desktop        $pkgdir/usr/share/applications/$pkgname.desktop
+  install -Dm644 $pkgname.conf           "$pkgdir/etc/$pkgname.conf"
+  install -Dm644 ${pkgname}-tool.conf    "$pkgdir/etc/${pkgname}-tool.conf"
+  install -Dm644 $pkgname.desktop        "$pkgdir/usr/share/applications/$pkgname.desktop"
 }
