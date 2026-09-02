@@ -532,8 +532,13 @@ Options:
                           Use this only if keyring issues constantly make system update fail.
   --no-keyring            Do not try to update keyrings first.
   --no-sync               Do not run 'sync' after update.
-  --keep-system-running   Do not allow sleep, hibernate, reboot, or shutdown if '$progname' is still running.
-                          Default: enabled.
+  --keep-system-running   Protects your system from unintentional sleep, hibernate, reboot, or shutdown
+                          if '$progname' is still running. This is the default.
+  --no-keep-system-running
+                          The opposite of --keep-system-running.
+                          Allows (unintentional) sleep, hibernate, reboot, or shutdown to crash
+                          the update process, which obviously can create severe system stability issues.
+                          Don't use this unwittingly.
   --run-mode <val>        Specifies the mode how the updating commands will be executed.
                           Supported values:
                              plain   Use current privileges. Uses 'sudo' for commands that need it.
@@ -623,6 +628,7 @@ _EosUpdate_Main2() {
     )
 
     DebugBreak
+    local -r progname=${0##*/}
     local -r pacmanconf=/etc/pacman.conf
     local -r eosupdateconf=/etc/$progname.conf
     local -r eml=/etc/pacman.d/endeavouros-mirrorlist
@@ -634,7 +640,8 @@ _EosUpdate_Main2() {
     local lopts="aur,clear-databases,descriptions,dump-options,fast,keyrings-reset,nvidia,no-keyring,no-sync,helper:"
     lopts+=",min-free-bytes:,pacdiff,paru,yay,pacman,help,run-mode:,faillock-check"
     lopts+=",show-only-fixed,show-upstream-news,check-mirrors-arch,check-mirrors-eos,check-mirrors,edit-mirrorlist:"
-    lopts+=",check-databases,reset-pacmanconf,other-updates,colors:,cache-limit:,rank-mirrors,keep-system-running"
+    lopts+=",check-databases,reset-pacmanconf,other-updates,colors:,cache-limit:,rank-mirrors"
+    lopts+=",keep-system-running,no-keep-system-running"
     lopts+=",tips,conf-filename"
     local sopts="dhl:"
 
@@ -659,7 +666,7 @@ _EosUpdate_Main2() {
     local paccache_limit=""
     local runusercommands_warning_count=0         # limit warnings to 1 from RunUserCommands
     local use_config_file=yes
-    local EOS_UPDATE_OPTIONS=(--keep-system-running)
+    local EOS_UPDATE_OPTIONS=()
     local args=("$@")
 
     [ "$EOS_UPDATE_PACDIFFER" ] && pacdiffer="$EOS_UPDATE_PACDIFFER"
@@ -669,24 +676,23 @@ _EosUpdate_Main2() {
     source /usr/share/endeavouros/scripts/eos-script-lib-yad || exit 1
     source /usr/share/endeavouros/scripts/translations.bash || exit 1
 
-    if [[ "$*" =~ "--no-config" ]] ; then
+    if [[ "${args[*]}" =~ "--no-config" ]] ; then
         # --no-config is an option for testing
         use_config_file=no
-        EOS_UPDATE_OPTIONS=()
-        readarray -t args < <(printf "%s\n" "$@" | grep -v -- "^--no-config$")
+        readarray -t args < <(printf "%s\n" "${args[@]}" | grep -v -- "^--no-config$")
     fi
 
-    # shellcheck disable=1090,2086
-    if [ "$use_config_file" = yes ] ; then
-        [ -e "$eosupdateconf" ] && source "$eosupdateconf"
+    if [ "$use_config_file" = yes ] && [ -e "$eosupdateconf" ] ; then
+        # shellcheck disable=1090
+        source "$eosupdateconf"
+        local tmp=("${args[@]}")
+        args=("${EOS_UPDATE_OPTIONS[@]}" "${tmp[@]}")
     fi
 
-    local all_options=("${EOS_UPDATE_OPTIONS[@]}" "${args[@]}")
-    
-    SingleOptions "${all_options[@]}"
+    SingleOptions "${args[@]}"
 
     echo2tip "$progname: package updater with additional features."
-    echo2tip "Command: $progname" "${all_options[@]}" "\n"
+    echo2tip "Command: $progname" "${args[@]}" "\n"
 
     RunUserCommands beginning
 
@@ -694,7 +700,7 @@ _EosUpdate_Main2() {
     # shellcheck disable=2119
     _init_translations
 
-    Options "${all_options[@]}"
+    Options "${args[@]}"
 
     if [ $eufast = yes ] ; then
         eos-update-fast "${eufast_opt[@]}"
@@ -798,13 +804,41 @@ HandleExtraCommands() {
 DebugBreak() { : ; }
 
 Main() {
-    local progname="${0##*/}"
-    if [[ "$*" =~ "--keep-system-running" ]] ; then
-        local params=()
-        readarray -t params < <(printf "%s\n" "$@" | grep -v -- '--keep-system-running')
-        systemd-inhibit --who="$progname" --why="Updating." "$progname" "${params[@]}"
+    local prog_name="${0##*/}"
+    local -r eosupdateconf=/etc/$prog_name.conf
+    local keep_running=yes      # default execution mode
+    local use_config_file=yes
+    local params=()
+    local arg
+    local phase=1
+    local EOS_UPDATE_OPTIONS=()
+
+    if [[ "$*" =~ "--no-config" ]] ; then
+        use_config_file=no
+    fi
+    if [ "$use_config_file" = yes ] && [ -e "$eosupdateconf" ] ; then
+        # shellcheck disable=1090
+        source "$eosupdateconf"
+        for arg in "${EOS_UPDATE_OPTIONS[@]}" ; do
+            case "$arg" in
+                --keep-system-running)    keep_running=yes ;;
+                --no-keep-system-running) keep_running=no ;;
+            esac
+        done
+    fi
+    for arg in "$@" ; do
+        case "$arg" in
+            --phase=2)                phase=2 ;;
+            --keep-system-running)    keep_running=yes ;;
+            --no-keep-system-running) keep_running=no ;;
+            *)                        params+=("$arg") ;;
+        esac
+    done
+    if [ "$keep_running" = yes ] && [ $phase = 1 ] ; then
+        local cmd=(systemd-inhibit --who="$prog_name" --why="Updating." "$prog_name" --phase=2 "${params[@]}")
+        "${cmd[@]}"
     else
-        _EosUpdate_Main2 "$@"
+        _EosUpdate_Main2 "${params[@]}"
     fi
 }
 
